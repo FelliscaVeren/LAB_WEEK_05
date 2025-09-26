@@ -62,13 +62,27 @@ class MainActivity : AppCompatActivity() {
             ) {
                 if (response.isSuccessful) {
                     val image = response.body()
-                    val firstImage = image?.firstOrNull()?.imageUrl.orEmpty()
-                    if (firstImage.isNotBlank()) {
-                        imageLoader.loadImage(firstImage, imageResultView)
+                    val firstImage = image?.firstOrNull()
+
+                    // Ambil URL gambar
+                    val imageUrl = firstImage?.imageUrl.orEmpty()
+
+                    // Ambil breed name (atau Unknown kalau kosong)
+                    val breedName = if (!firstImage?.breeds.isNullOrEmpty()) {
+                        firstImage?.breeds?.firstOrNull()?.name ?: "Unknown"
+                    } else {
+                        "Unknown"
+                    }
+
+                    // Tampilkan image dengan Glide
+                    if (imageUrl.isNotBlank()) {
+                        imageLoader.loadImage(imageUrl, imageResultView)
                     } else {
                         Log.d(MAIN_ACTIVITY, "Missing image URL")
                     }
-                    apiResponseView.text = getString(R.string.image_placeholder, firstImage)
+
+                    // Ganti TextView jadi breed name
+                    apiResponseView.text = getString(R.string.image_placeholder, breedName)
                 } else {
                     Log.e(
                         MAIN_ACTIVITY,
