@@ -2,48 +2,50 @@ package com.example.lab_week_05
 
 import android.os.Bundle
 import android.util.Log
+import android.widget.ImageView
 import android.widget.TextView
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import com.example.lab_week_05.model.ImageData
-import retrofit2.*
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var apiResponseView: TextView
+    companion object {
+        private const val BASE_URL = "https://api.thecatapi.com/v1/"
+        private const val MAIN_ACTIVITY = "MainActivity"
+    }
 
-    // Retrofit instance
-    private val retrofit by lazy {
+    private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
-            .baseUrl("https://api.thecatapi.com/v1/")
-            .addConverterFactory(MoshiConverterFactory.create())
+            .baseUrl(BASE_URL)
+            .addConverterFactory(MoshiConverterFactory.create()) // ✅ ganti ke Moshi
             .build()
     }
 
-    // API service
     private val catApiService by lazy {
         retrofit.create(CatApiService::class.java)
     }
 
+    private val apiResponseView: TextView by lazy {
+        findViewById(R.id.api_response)
+    }
+
+    private val imageResultView: ImageView by lazy {
+        findViewById(R.id.image_result)
+    }
+
+    private val imageLoader: ImageLoader by lazy {
+        GlideLoader(this)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
-        // Bind TextView dari XML
-        apiResponseView = findViewById(R.id.api_response)
-
-        // Atur padding biar UI tidak ketutupan status bar
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
-
-        // Panggil API
         getCatImageResponse()
     }
 
@@ -60,20 +62,20 @@ class MainActivity : AppCompatActivity() {
             ) {
                 if (response.isSuccessful) {
                     val image = response.body()
-                    val firstImage = image?.firstOrNull()?.imageUrl ?: "No URL"
+                    val firstImage = image?.firstOrNull()?.imageUrl.orEmpty()
+                    if (firstImage.isNotBlank()) {
+                        imageLoader.loadImage(firstImage, imageResultView)
+                    } else {
+                        Log.d(MAIN_ACTIVITY, "Missing image URL")
+                    }
                     apiResponseView.text = getString(R.string.image_placeholder, firstImage)
                 } else {
                     Log.e(
                         MAIN_ACTIVITY,
-                        "Failed to get response\n" +
-                                response.errorBody()?.string().orEmpty()
+                        "Failed to get response\n" + response.errorBody()?.string().orEmpty()
                     )
                 }
             }
         })
-    }
-
-    companion object {
-        const val MAIN_ACTIVITY = "MainActivity"
     }
 }
